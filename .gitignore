@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables & secrets (CRITICAL SECURITY)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local SQLite databases & backups (CRITICAL SECURITY)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+dev.db
+**/dev.db
+*.sqlite
+*.sqlite3
+
+# Build outputs
+dist/
+dist-ssr/
+dist-electron/
+**/dist/
+**/dist-electron/
+build/
+**/build/
+.next/
+coverage/
+.cache/
+.vite/
+.turbo/
+.dev-server-url
+**/.dev-server-url
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

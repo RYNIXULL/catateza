@@ -1,0 +1,249 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id              String   @id @default(uuid())
+  name            String
+  address         String?
+  phone           String?
+  costingMethod   CostingMethod @default(DEFAULT)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users           User[]
+  products        Product[]
+  stocks          Stock[]
+  stockMovements  StockMovement[]
+  transactions    Transaction[]
+  cashFlows       CashFlow[]
+}
+
+enum CostingMethod {
+  FIFO
+  LIFO
+  AVERAGE
+  DEFAULT
+}
+
+enum Role {
+  OWNER
+  CASHIER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(CASHIER)
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  auditLogs    AuditLog[]
+  cashFlows     CashFlow[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  sku         String
+  barcode     String?
+  name        String
+  description String?
+  buyPrice    Decimal
+  sellPrice   Decimal
+  isActive    Boolean  @default(true)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stocks          Stock[]
+  stockMovements  StockMovement[]
+  transactionItems TransactionItem[]
+
+  @@unique([sku, storeId])
+}
+
+model Stock {
+  id           String   @id @default(uuid())
+  quantity     Int      @default(0)
+  minStock     Int      @default(0)
+  maxStock     Int      @default(0)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([productId, storeId]) // One stock record per product per store
+}
+
+enum MovementType {
+  PURCHASE
+  SALE
+  RETURN
+  TRANSFER
+  ADJUSTMENT
+  EXPIRED
+  DAMAGED
+  MANUAL
+  OPNAME
+}
+
+model StockMovement {
+  id          String   @id @default(uuid())
+  type        MovementType
+  quantity    Int
+  unitCost    Decimal  @default(0) // Added for HPP calculations
+  referenceId String?  // ID of Transaction, PO, or Transfer
+  notes       String?
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  TRANSFER
+  DEBIT
+  KREDIT
+  EWALLET
+}
+
+enum TransactionStatus {
+  COMPLETED
+  HELD
+  VOID
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  subtotal      Decimal
+  discount      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  grandTotal    Decimal
+  status        TransactionStatus @default(COMPLETED)
+  notes         String?
+
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         TransactionItem[]
+  payments      Payment[]
+}
+
+model TransactionItem {
+  id            String   @id @default(uuid())
+  quantity      Int
+  price         Decimal
+  cogs          Decimal  @default(0) // Cost of Goods Sold per unit
+  discount      Decimal  @default(0)
+  total         Decimal
+  
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  method        PaymentMethod
+  amount        Decimal
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  isMember  Boolean  @default(false)
+  points    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum CashFlowType {
+  INCOME
+  EXPENSE
+}
+
+model CashFlow {
+  id          String   @id @default(uuid())
+  type        CashFlowType
+  amount      Decimal
+  description String
+  category    String?
+  date        DateTime @default(now())
+  
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,0 +1,51 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build:electron": "node scripts/build-electron.cjs",
+    "dev:desktop": "node scripts/build-electron.cjs && concurrently -k \"vite\" \"wait-on .dev-server-url && npx electron .\"",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@tanstack/react-query": "^5.101.4",
+    "axios": "^1.18.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.1",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^1.26.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.82.0",
+    "react-router-dom": "^7.18.1",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "autoprefixer": "^10.5.4",
+    "concurrently": "^10.0.5",
+    "electron": "^43.4.1",
+    "oxlint": "^1.71.0",
+    "postcss": "^8.5.22",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "wait-on": "^9.1.0"
+  }
+}
