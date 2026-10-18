@@ -23,6 +23,7 @@ const electronDevTrackerPlugin = (): Plugin => ({
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [react(), tailwindcss(), electronDevTrackerPlugin()],
   server: {
     proxy: {

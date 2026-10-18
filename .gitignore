@@ -26,6 +26,8 @@ dist-ssr/
 dist-electron/
 **/dist/
 **/dist-electron/
+release/
+**/release/
 build/
 **/build/
 .next/

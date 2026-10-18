@@ -1,7 +1,9 @@
 {
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
+  "name": "catateza-pos",
+  "productName": "Catat Eza POS",
+  "version": "1.0.0",
+  "description": "Aplikasi Kasir & Manajemen Toko Multi Cabang",
+  "author": "RYNIXULL",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
@@ -9,8 +11,36 @@
     "build:electron": "node scripts/build-electron.cjs",
     "dev:desktop": "node scripts/build-electron.cjs && concurrently -k \"vite\" \"wait-on .dev-server-url && npx electron .\"",
     "build": "vite build",
+    "build:exe": "npm run build && npm run build:electron && electron-builder --win nsis",
+    "build:portable": "npm run build && npm run build:electron && electron-builder --win portable",
     "lint": "oxlint",
     "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.catateza.pos",
+    "productName": "Catat Eza POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Catat Eza POS"
+    }
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -41,6 +71,7 @@
     "autoprefixer": "^10.5.4",
     "concurrently": "^10.0.5",
     "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
     "oxlint": "^1.71.0",
     "postcss": "^8.5.22",
     "tailwindcss": "^4.3.3",
