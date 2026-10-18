@@ -13,7 +13,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid credentials format', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid credentials format', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const { email, password } = parsed.data;
@@ -66,7 +66,7 @@ export const createCashier = async (req: Request, res: Response) => {
   try {
     const parsed = createCashierSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const { email, password, name, storeId } = parsed.data;
@@ -118,10 +118,10 @@ const updateCashierSchema = z.object({
 
 export const updateCashier = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const parsed = updateCashierSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const { email, password, name } = parsed.data;
@@ -171,7 +171,7 @@ export const updateCashier = async (req: Request, res: Response) => {
 
 export const deleteCashier = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     
     const existingUser = await prisma.user.findUnique({ where: { id } });
     if (!existingUser) {

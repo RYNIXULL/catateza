@@ -40,7 +40,7 @@ export const updateStoreSettings = async (req: Request, res: Response) => {
 
     const parsed = updateSettingsSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const { costingMethod } = parsed.data;
@@ -91,7 +91,7 @@ export const createStore = async (req: Request, res: Response) => {
   try {
     const parsed = storeSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const store = await prisma.store.create({
@@ -106,10 +106,10 @@ export const createStore = async (req: Request, res: Response) => {
 
 export const updateStore = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const parsed = storeSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid input', errors: parsed.error.errors });
+      return res.status(400).json({ message: 'Invalid input', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
     const store = await prisma.store.update({
@@ -125,7 +125,7 @@ export const updateStore = async (req: Request, res: Response) => {
 
 export const deleteStore = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     // We shouldn't let them delete if there are transactions, or we cascade it.
     // For now we'll just try to delete, Prisma will throw if there are relations without cascade.
     await prisma.store.delete({
@@ -140,7 +140,7 @@ export const deleteStore = async (req: Request, res: Response) => {
 
 export const getStoreDashboard = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     
     // Get basic stats
     const store = await prisma.store.findUnique({
@@ -207,7 +207,7 @@ export const getStoreDashboard = async (req: Request, res: Response) => {
 
 export const getStoreCashiers = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const cashiers = await prisma.user.findMany({
       where: {
         storeId: id,

@@ -6,7 +6,7 @@ const cashFlowService = new CashFlowService();
 export class CashFlowController {
   async getByStore(req: Request, res: Response) {
     try {
-      const { storeId } = req.params;
+      const storeId = req.params.storeId as string;
       const cashFlows = await cashFlowService.getCashFlowByStore(storeId);
       const summary = await cashFlowService.getCashFlowSummary(storeId);
       
@@ -36,7 +36,7 @@ export class CashFlowController {
 
   async delete(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       await cashFlowService.deleteCashFlow(id);
       res.status(204).send();
     } catch (error) {

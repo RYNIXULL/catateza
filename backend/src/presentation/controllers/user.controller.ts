@@ -27,7 +27,7 @@ export class UserController {
   // Assign or unassign a user from a store
   async assignStore(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { storeId } = req.body; // Can be null to unassign
 
       const user = await prisma.user.findUnique({ where: { id } });

@@ -23,7 +23,7 @@ export class ProductController {
 
   async getProductById(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const product = await productService.getProductById(id);
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
@@ -87,7 +87,7 @@ export class ProductController {
 
   async updateProduct(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const product = await productService.updateProduct(id, req.body);
       res.json(product);
     } catch (error: any) {
@@ -97,7 +97,7 @@ export class ProductController {
 
   async deleteProduct(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       await productService.deleteProduct(id);
       res.status(204).send();
     } catch (error: any) {
