@@ -51,9 +51,11 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(port, () => {
-  console.log(`🚀 Smart POS Backend running on port ${port}`);
-});
+// Start Server (Only when not in Vercel serverless environment)
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`🚀 Smart POS Backend running on port ${port}`);
+  });
+}
 
 export default app;
