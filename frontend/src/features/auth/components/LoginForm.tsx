@@ -24,6 +24,7 @@ export const LoginForm = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -32,7 +33,10 @@ export const LoginForm = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', data);
+      const response = await api.post('/auth/login', {
+        email: data.email.trim().toLowerCase(),
+        password: data.password.trim(),
+      });
       
       const { user, tokens } = response.data;
       setAuth(user, tokens.accessToken);
@@ -54,16 +58,23 @@ export const LoginForm = () => {
     }
   };
 
+  const handleFillDemo = () => {
+    setValue('email', 'admin@smartpos.com');
+    setValue('password', 'admin123');
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <label className="block text-sm font-medium text-foreground mb-1.5">
-          Email / Token Akses
+          Email
         </label>
         <input
           {...register('email')}
           type="text"
           placeholder="admin@smartpos.com"
+          autoCapitalize="none"
+          autoCorrect="off"
           className={`w-full px-4 py-2.5 rounded-lg border bg-white/50 dark:bg-black/50  transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
             errors.email ? 'border-red-500/50' : 'border-border'
           }`}
@@ -93,7 +104,7 @@ export const LoginForm = () => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg font-medium transition-all active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none shadow-sm"
+        className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg font-medium transition-all active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none shadow-sm cursor-pointer"
       >
         {isLoading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -104,6 +115,16 @@ export const LoginForm = () => {
           </>
         )}
       </button>
+
+      <div className="pt-2 text-center border-t border-border/50">
+        <button
+          type="button"
+          onClick={handleFillDemo}
+          className="text-xs text-primary hover:underline font-medium inline-block cursor-pointer py-1 px-2 rounded hover:bg-primary/5 transition-colors"
+        >
+          Isi Otomatis Akun Admin (admin@smartpos.com / admin123)
+        </button>
+      </div>
     </form>
   );
 };

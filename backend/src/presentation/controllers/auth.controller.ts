@@ -16,10 +16,15 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid credentials format', errors: (parsed.error as any).issues || (parsed.error as any).errors });
     }
 
-    const { email, password } = parsed.data;
+    const email = parsed.data.email.trim().toLowerCase();
+    const password = parsed.data.password.trim();
 
-    const user = await prisma.user.findUnique({ 
-      where: { email },
+    const user = await prisma.user.findFirst({ 
+      where: { 
+        email: {
+          equals: email
+        }
+      },
       include: { store: true }
     });
     if (!user) {
