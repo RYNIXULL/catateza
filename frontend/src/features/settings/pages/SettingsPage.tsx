@@ -10,7 +10,8 @@ import {
   Boxes, 
   Loader2, 
   PlaySquare, 
-  Eye, 
+  Eye,
+  EyeOff,
   BellRing, 
   Volume2, 
   VolumeX,
@@ -90,6 +91,9 @@ export const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [selectedTimeout, setSelectedTimeout] = useState(autoLogoutSettings.timeoutMinutes);
   const [showWarningModalToggle, setShowWarningModalToggle] = useState(autoLogoutSettings.showWarning);
@@ -392,35 +396,65 @@ export const SettingsPage = () => {
 
                     <div className="grid gap-4 max-w-2xl bg-white/30 dark:bg-black/30 border border-white/20 rounded-2xl p-5 shadow-xs">
                       <div className="grid gap-2">
-                        <label className="text-sm font-semibold text-foreground">Kata Sandi Saat Ini</label>
-                        <input 
-                          type="password" 
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          placeholder="Masukkan kata sandi saat ini"
-                          className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
-                        />
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-semibold text-foreground">Kata Sandi Saat Ini</label>
+                          <span className="text-xs text-muted-foreground font-normal">Sandi awal default: admin123</span>
+                        </div>
+                        <div className="relative">
+                          <input 
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Masukkan kata sandi saat ini"
+                            className="w-full px-4 py-2.5 pr-11 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <label className="text-sm font-semibold text-foreground">Kata Sandi Baru</label>
-                          <input 
-                            type="password" 
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="Minimal 6 karakter"
-                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
-                          />
+                          <div className="relative">
+                            <input 
+                              type={showNewPassword ? "text" : "password"}
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              placeholder="Minimal 6 karakter"
+                              className="w-full px-4 py-2.5 pr-11 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </div>
                         <div className="grid gap-2">
                           <label className="text-sm font-semibold text-foreground">Konfirmasi Kata Sandi</label>
-                          <input 
-                            type="password" 
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Ulangi kata sandi baru"
-                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
-                          />
+                          <div className="relative">
+                            <input 
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              placeholder="Ulangi kata sandi baru"
+                              className="w-full px-4 py-2.5 pr-11 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <div className="flex justify-end pt-2">
