@@ -61,8 +61,9 @@ export const ProductModal = ({ isOpen, onClose, onSuccess, storeId, initialData 
         initialStock: initialData.stocks?.reduce((acc, s) => acc + s.quantity, 0) || 0,
       });
     } else {
+      const rand = Math.floor(1000 + Math.random() * 9000);
       reset({
-        sku: '',
+        sku: `PRD-${rand}`,
         barcode: '',
         name: '',
         buyPrice: 0,
@@ -71,6 +72,11 @@ export const ProductModal = ({ isOpen, onClose, onSuccess, storeId, initialData 
       });
     }
   }, [initialData, isOpen, reset]);
+
+  const generateRandomSku = () => {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    setValue('sku', `PRD-${rand}`, { shouldValidate: true });
+  };
 
   if (!isOpen) return null;
 
@@ -81,16 +87,24 @@ export const ProductModal = ({ isOpen, onClose, onSuccess, storeId, initialData 
         await productApi.update({
           id: initialData.id,
           data: {
-            sku: data.sku,
-            barcode: data.barcode || null as any,
-            name: data.name,
-            buyPrice: data.buyPrice,
-            sellPrice: data.sellPrice,
+            sku: data.sku.trim().toUpperCase(),
+            barcode: data.barcode?.trim() || null as any,
+            name: data.name.trim(),
+            buyPrice: Number(data.buyPrice) || 0,
+            sellPrice: Number(data.sellPrice) || 0,
           }
         });
         success("Produk Berhasil Diperbarui", `Perubahan untuk ${data.name} berhasil disimpan.`);
       } else {
-        await productApi.create({ ...data, storeId });
+        await productApi.create({
+          sku: data.sku.trim().toUpperCase(),
+          barcode: data.barcode?.trim() || undefined,
+          name: data.name.trim(),
+          buyPrice: Number(data.buyPrice) || 0,
+          sellPrice: Number(data.sellPrice) || 0,
+          initialStock: parseInt(String(data.initialStock), 10) || 0,
+          storeId,
+        });
         success("Produk Berhasil Ditambahkan", `${data.name} telah masuk ke dalam Inventaris.`);
       }
       reset();
@@ -141,7 +155,18 @@ export const ProductModal = ({ isOpen, onClose, onSuccess, storeId, initialData 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-foreground mb-1.5">SKU / Kode Barang</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-foreground">SKU / Kode Barang</label>
+                {!isEdit && (
+                  <button
+                    type="button"
+                    onClick={generateRandomSku}
+                    className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
+                  >
+                    Acak SKU
+                  </button>
+                )}
+              </div>
               <input
                 {...register('sku')}
                 placeholder="Mis: PRD-001"

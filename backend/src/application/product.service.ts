@@ -30,50 +30,78 @@ export class ProductService {
     barcode?: string;
     name: string;
     description?: string;
-    buyPrice: number;
-    sellPrice: number;
+    buyPrice: number | string;
+    sellPrice: number | string;
     categoryId?: string;
-    storeId: string;
-    initialStock?: number;
+    storeId?: string;
+    initialStock?: number | string;
   }) {
+    const cleanSku = String(data.sku || '').trim().toUpperCase();
+    const cleanBarcode = data.barcode && String(data.barcode).trim() !== '' ? String(data.barcode).trim() : null;
+    const cleanName = String(data.name || '').trim();
+    const buyPrice = Number(data.buyPrice) || 0;
+    const sellPrice = Number(data.sellPrice) || 0;
+    const initialStock = data.initialStock !== undefined && data.initialStock !== null && data.initialStock !== ''
+      ? parseInt(String(data.initialStock), 10) || 0
+      : 0;
+
+    let targetStoreId = data.storeId;
+    if (!targetStoreId) {
+      const defaultStore = await prisma.store.findFirst();
+      if (!defaultStore) {
+        throw new Error('Belum ada data Cabang Toko. Silakan buat cabang toko terlebih dahulu.');
+      }
+      targetStoreId = defaultStore.id;
+    }
+
+    // Cek apakah SKU sudah digunakan di cabang ini
+    const existingSku = await prisma.product.findFirst({
+      where: {
+        sku: cleanSku,
+        storeId: targetStoreId,
+      }
+    });
+
+    if (existingSku) {
+      throw new Error(`SKU "${cleanSku}" sudah digunakan oleh produk "${existingSku.name}" di cabang ini.`);
+    }
+
     // Start a transaction if we need to initialize stock
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
         data: {
-          sku: data.sku,
-          barcode: data.barcode,
-          name: data.name,
-          description: data.description,
-          buyPrice: data.buyPrice,
-          sellPrice: data.sellPrice,
-          categoryId: data.categoryId,
-          storeId: data.storeId,
+          sku: cleanSku,
+          barcode: cleanBarcode,
+          name: cleanName,
+          description: data.description ? String(data.description).trim() : null,
+          buyPrice,
+          sellPrice,
+          categoryId: data.categoryId || null,
+          storeId: targetStoreId,
         },
       });
 
-      const activeStoreId = data.storeId;
+      const activeStoreId = targetStoreId;
 
-      if (data.initialStock !== undefined) {
-        await tx.stock.create({
+      await tx.stock.create({
+        data: {
+          productId: product.id,
+          storeId: activeStoreId,
+          quantity: initialStock,
+        }
+      });
+
+      if (initialStock > 0) {
+        await tx.stockMovement.create({
           data: {
+            type: 'MANUAL',
+            quantity: initialStock,
+            unitCost: buyPrice,
             productId: product.id,
             storeId: activeStoreId,
-            quantity: data.initialStock,
+            notes: 'Stok awal',
           }
         });
-
-        if (data.initialStock > 0) {
-          await tx.stockMovement.create({
-            data: {
-              type: 'MANUAL',
-              quantity: data.initialStock,
-              unitCost: data.buyPrice,
-              productId: product.id,
-              storeId: activeStoreId,
-              notes: 'Initial stock',
-            }
-          });
-        }
       }
 
       return product;

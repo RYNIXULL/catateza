@@ -39,21 +39,17 @@ export class ProductController {
       const user = (req as any).user;
       const data = req.body;
 
-      if (user?.role === 'CASHIER' && user?.store?.id) {
-        data.storeId = user.store.id;
-      }
-
-      if (!data.storeId) {
-        return res.status(400).json({ message: 'storeId is required to create a product' });
+      if (user?.role === 'CASHIER' && (user?.storeId || user?.store?.id)) {
+        data.storeId = user.storeId || user.store.id;
       }
 
       console.log('--- Incoming createProduct request ---', data);
       const product = await productService.createProduct(data);
-      console.log('--- Successfully created product ---', product.id);
       res.status(201).json(product);
     } catch (error: any) {
       console.error('--- Error creating product ---', error);
-      res.status(500).json({ message: 'Error creating product', error: error.message });
+      const msg = error.message || 'Gagal menambahkan produk';
+      res.status(400).json({ message: msg, error: msg });
     }
   }
 
