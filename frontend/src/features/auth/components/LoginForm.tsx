@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Loader2 } from 'lucide-react';
+import { LogIn, Loader2, KeyRound, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { useToast } from '../../../hooks/useToast';
 import api from '../../../lib/axios';
@@ -17,6 +17,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [savedHint, setSavedHint] = useState<string>('');
   const { setAuth } = useAuthStore();
   const { error, success } = useToast();
   const navigate = useNavigate();
@@ -30,6 +33,23 @@ export const LoginForm = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    // Check for remembered email
+    const rememberEmailSetting = localStorage.getItem('smartpos_remember_email');
+    if (rememberEmailSetting !== 'false') {
+      const lastEmail = localStorage.getItem('smartpos_last_email');
+      if (lastEmail) {
+        setValue('email', lastEmail);
+      }
+    }
+
+    // Check for saved password hint
+    const hint = localStorage.getItem('smartpos_password_hint');
+    if (hint && hint.trim()) {
+      setSavedHint(hint.trim());
+    }
+  }, [setValue]);
+
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
@@ -40,6 +60,12 @@ export const LoginForm = () => {
       
       const { user, tokens } = response.data;
       setAuth(user, tokens.accessToken);
+
+      // Save email for next login if remember email is active
+      const rememberEmailSetting = localStorage.getItem('smartpos_remember_email');
+      if (rememberEmailSetting !== 'false') {
+        localStorage.setItem('smartpos_last_email', data.email.trim().toLowerCase());
+      }
       
       success("Login Berhasil", `Selamat datang kembali, ${user.name}`);
       
@@ -85,19 +111,51 @@ export const LoginForm = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">
-          Kata Sandi
-        </label>
-        <input
-          {...register('password')}
-          type="password"
-          placeholder="••••••••"
-          className={`w-full px-4 py-2.5 rounded-lg border bg-white/50 dark:bg-black/50  transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-            errors.password ? 'border-red-500/50' : 'border-border'
-          }`}
-        />
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-sm font-medium text-foreground">
+            Kata Sandi
+          </label>
+          {savedHint && (
+            <button
+              type="button"
+              onClick={() => setShowHint(!showHint)}
+              className="text-xs text-primary hover:underline flex items-center gap-1 font-medium cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>{showHint ? 'Tutup Petunjuk' : 'Lihat Petunjuk Sandi'}</span>
+            </button>
+          )}
+        </div>
+        <div className="relative">
+          <input
+            {...register('password')}
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            className={`w-full px-4 py-2.5 pr-10 rounded-lg border bg-white/50 dark:bg-black/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+              errors.password ? 'border-red-500/50' : 'border-border'
+            }`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
         {errors.password && (
           <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+        )}
+
+        {/* Display Password Hint if toggled */}
+        {showHint && savedHint && (
+          <div className="mt-2 p-3 rounded-xl bg-white/40 dark:bg-black/40 backdrop-blur-md border border-white/40 shadow-xs text-xs text-muted-foreground flex items-start gap-2 animate-in fade-in duration-200">
+            <KeyRound className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold text-foreground">Petunjuk Kata Sandi: </span>
+              <span className="text-foreground/90 italic font-medium">{savedHint}</span>
+            </div>
+          </div>
         )}
       </div>
 

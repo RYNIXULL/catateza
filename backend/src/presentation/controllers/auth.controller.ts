@@ -194,3 +194,49 @@ export const deleteCashier = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Kata sandi saat ini harus diisi'),
+  newPassword: z.string().min(6, 'Kata sandi baru minimal 6 karakter'),
+});
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user || !user.userId) {
+      return res.status(401).json({ message: 'Sesi tidak valid, silakan login kembali' });
+    }
+
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0]?.message || 'Format kata sandi tidak valid';
+      return res.status(400).json({ message: firstError });
+    }
+
+    const { currentPassword, newPassword } = parsed.data;
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+    });
+
+    if (!dbUser) {
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
+    }
+
+    const isCurrentValid = await comparePassword(currentPassword, dbUser.password);
+    if (!isCurrentValid) {
+      return res.status(400).json({ message: 'Kata sandi saat ini tidak sesuai / salah' });
+    }
+
+    const hashedNewPassword = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: { id: user.userId },
+      data: { password: hashedNewPassword },
+    });
+
+    return res.json({ message: 'Kata sandi berhasil diperbarui' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengubah kata sandi' });
+  }
+};

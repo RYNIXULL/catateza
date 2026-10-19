@@ -1,10 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Receipt, CreditCard, Bell, Shield, Save, Boxes, Loader2, PlaySquare, Eye, BellRing, Volume2, VolumeX } from 'lucide-react';
+import { 
+  Building2, 
+  Receipt, 
+  CreditCard, 
+  Bell, 
+  Shield, 
+  Save, 
+  Boxes, 
+  Loader2, 
+  PlaySquare, 
+  Eye, 
+  BellRing, 
+  Volume2, 
+  VolumeX,
+  KeyRound,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  HelpCircle,
+  Info
+} from 'lucide-react';
 import { getStoreSettings, updateStoreSettings, type CostingMethod, type StoreSettings } from '../api/storeApi';
 import { useToast } from '../../../hooks/useToast';
 import { useNotificationStore } from '../../../store/notificationStore';
 import { soundManager } from '../../../lib/sound';
+import api from '../../../lib/axios';
+import { useAutoLogout } from '../../../components/providers/AutoLogoutProvider';
 
 export const SettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +83,74 @@ export const SettingsPage = () => {
       setQrisUrl(url);
     }
   };
+
+  // Security States
+  const { settings: autoLogoutSettings, updateSettings: updateAutoLogoutSettings } = useAutoLogout();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const [selectedTimeout, setSelectedTimeout] = useState(autoLogoutSettings.timeoutMinutes);
+  const [showWarningModalToggle, setShowWarningModalToggle] = useState(autoLogoutSettings.showWarning);
+  const [rememberEmailToggle, setRememberEmailToggle] = useState(autoLogoutSettings.rememberEmail);
+  const [passwordHintInput, setPasswordHintInput] = useState(autoLogoutSettings.passwordHint);
+  const [isSavingSecuritySettings, setIsSavingSecuritySettings] = useState(false);
+
+  useEffect(() => {
+    setSelectedTimeout(autoLogoutSettings.timeoutMinutes);
+    setShowWarningModalToggle(autoLogoutSettings.showWarning);
+    setRememberEmailToggle(autoLogoutSettings.rememberEmail);
+    setPasswordHintInput(autoLogoutSettings.passwordHint);
+  }, [autoLogoutSettings]);
+
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      error("Validasi Gagal", "Kata sandi saat ini harus diisi.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      error("Validasi Gagal", "Kata sandi baru minimal 6 karakter.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      error("Validasi Gagal", "Konfirmasi kata sandi tidak cocok dengan kata sandi baru.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await api.put('/auth/change-password', {
+        currentPassword: currentPassword.trim(),
+        newPassword: newPassword.trim(),
+      });
+      success("Kata Sandi Berhasil Diperbarui", "Kata sandi akun Anda telah berhasil diubah di database.");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      console.error("Change password error:", err);
+      error(
+        "Gagal Mengubah Kata Sandi",
+        err.response?.data?.message || "Kata sandi saat ini tidak sesuai atau terjadi kendala."
+      );
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleSaveSecuritySettings = () => {
+    setIsSavingSecuritySettings(true);
+    updateAutoLogoutSettings({
+      timeoutMinutes: selectedTimeout,
+      showWarning: showWarningModalToggle,
+      rememberEmail: rememberEmailToggle,
+      passwordHint: passwordHintInput.trim(),
+    });
+    success("Pengaturan Disimpan", "Preferensi logout otomatis dan pengingat kata sandi telah aktif.");
+    setIsSavingSecuritySettings(false);
+  };
+
   useEffect(() => {
     if (activeTab === 'Pengaturan Stok') {
       fetchSettings();
@@ -284,20 +374,31 @@ export const SettingsPage = () => {
               <>
                 <div className="border-b border-white/20 pb-4 mb-6">
                   <h2 className="text-xl font-bold text-foreground">Keamanan</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Kelola kata sandi dan pengaturan keamanan akun Anda.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Kelola kata sandi akun dan kebijakan logout otomatis.</p>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* Ubah Password Section */}
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-foreground text-lg">Ubah Kata Sandi</h3>
-                    <div className="grid gap-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <KeyRound className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground text-lg">Ubah Kata Sandi</h3>
+                        <p className="text-xs text-muted-foreground">Perbarui kata sandi akun Anda secara berkala demi keamanan.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 max-w-2xl bg-white/30 dark:bg-black/30 border border-white/20 rounded-2xl p-5 shadow-xs">
                       <div className="grid gap-2">
                         <label className="text-sm font-semibold text-foreground">Kata Sandi Saat Ini</label>
                         <input 
                           type="password" 
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
                           placeholder="Masukkan kata sandi saat ini"
-                          className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,58 +406,136 @@ export const SettingsPage = () => {
                           <label className="text-sm font-semibold text-foreground">Kata Sandi Baru</label>
                           <input 
                             type="password" 
-                            placeholder="Masukkan kata sandi baru"
-                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Minimal 6 karakter"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
                           />
                         </div>
                         <div className="grid gap-2">
                           <label className="text-sm font-semibold text-foreground">Konfirmasi Kata Sandi</label>
                           <input 
                             type="password" 
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="Ulangi kata sandi baru"
-                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
                           />
                         </div>
                       </div>
-                      <div className="flex justify-end mt-2">
+                      <div className="flex justify-end pt-2">
                         <button 
-                          onClick={() => success("Berhasil", "Kata sandi berhasil diperbarui")}
-                          className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:bg-primary/90 transition-all flex items-center gap-2"
+                          type="button"
+                          onClick={handleChangePassword}
+                          disabled={isUpdatingPassword}
+                          className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60 text-sm"
                         >
-                          <Shield className="w-4 h-4" /> Perbarui Kata Sandi
+                          {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                          <span>{isUpdatingPassword ? 'Memperbarui...' : 'Perbarui Kata Sandi'}</span>
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t border-white/20 my-6"></div>
+                  <div className="border-t border-white/20"></div>
 
-                  {/* Pengaturan Keamanan Lainnya */}
+                  {/* Pengaturan Logout Otomatis & Keamanan Sesi */}
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-foreground text-lg">Keamanan Tambahan</h3>
-                    
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 hover:bg-white/40 transition-colors">
-                      <div>
-                        <h4 className="font-medium text-foreground">Autentikasi Dua Faktor (2FA)</h4>
-                        <p className="text-sm text-muted-foreground mt-0.5">Lindungi akun dengan verifikasi lapisan kedua.</p>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                        <Clock className="w-4 h-4" />
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                      </label>
+                      <div>
+                        <h3 className="font-semibold text-foreground text-lg">Logout Otomatis & Keamanan Sesi</h3>
+                        <p className="text-xs text-muted-foreground">Kelola waktu istirahat kasir dan opsi bantuan pengingat kata sandi.</p>
+                      </div>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 hover:bg-white/40 transition-colors">
-                      <div>
-                        <h4 className="font-medium text-foreground">Logout Otomatis</h4>
-                        <p className="text-sm text-muted-foreground mt-0.5">Keluar otomatis jika tidak ada aktivitas.</p>
+                    
+                    <div className="space-y-4 max-w-2xl">
+                      {/* Durasi Logout */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 hover:bg-white/40 transition-colors">
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Durasi Tidak Aktif</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Sesi kasir akan otomatis keluar jika tidak ada aktivitas mouse / keyboard.</p>
+                        </div>
+                        <select 
+                          value={selectedTimeout}
+                          onChange={(e) => setSelectedTimeout(e.target.value)}
+                          className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium text-foreground cursor-pointer"
+                        >
+                          <option value="never">Tidak pernah (Tetap Aktif)</option>
+                          <option value="15">15 Menit Tidak Aktif</option>
+                          <option value="30">30 Menit Tidak Aktif</option>
+                          <option value="60">1 Jam Tidak Aktif</option>
+                          <option value="120">2 Jam Tidak Aktif</option>
+                          <option value="240">4 Jam Tidak Aktif</option>
+                          <option value="480">8 Jam (1 Shift Kerja)</option>
+                        </select>
                       </div>
-                      <select className="px-3 py-2 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium">
-                        <option>Tidak pernah</option>
-                        <option>15 Menit</option>
-                        <option>30 Menit</option>
-                        <option>1 Jam</option>
-                      </select>
+
+                      {/* Peringatan 60 Detik Sebelum Logout */}
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 hover:bg-white/40 transition-colors">
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Peringatan 60 Detik Sebelum Logout</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Tampilkan dialog hitung mundur dengan tombol "Tetap Masuk" sebelum sesi ditutup.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                          <input 
+                            type="checkbox" 
+                            checked={showWarningModalToggle}
+                            onChange={(e) => setShowWarningModalToggle(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                        </label>
+                      </div>
+
+                      {/* Ingat Email Akun di Halaman Login */}
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 hover:bg-white/40 transition-colors">
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Ingat Email Akun di Halaman Login</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Otomatis mengisi email Anda pada layar login sehingga Anda hanya perlu memasukkan sandi.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                          <input 
+                            type="checkbox" 
+                            checked={rememberEmailToggle}
+                            onChange={(e) => setRememberEmailToggle(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                        </label>
+                      </div>
+
+                      {/* Petunjuk Kata Sandi Pribadi */}
+                      <div className="p-4 rounded-xl bg-white/30 dark:bg-black/30 border border-white/20 space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <HelpCircle className="w-4 h-4 text-primary" />
+                          <h4 className="font-medium text-foreground text-sm">Petunjuk Kata Sandi Pribadi (Password Hint)</h4>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Tuliskan petunjuk pribadi agar Anda tidak lupa kata sandi akun jika sesi keluar (contoh: "nama toko + tahun" atau "tgl lahir"). Petunjuk ini dapat dilihat di layar login tanpa membocorkan kata sandi asli Anda.
+                        </p>
+                        <input 
+                          type="text"
+                          value={passwordHintInput}
+                          onChange={(e) => setPasswordHintInput(e.target.value)}
+                          placeholder="Misal: Nama toko + 2 digit tahun"
+                          className="w-full px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground text-sm"
+                        />
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <button 
+                          type="button"
+                          onClick={handleSaveSecuritySettings}
+                          disabled={isSavingSecuritySettings}
+                          className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:bg-primary/90 transition-all flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>Simpan Pengaturan Keamanan</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
