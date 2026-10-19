@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, WalletCards, CalendarDays, Building2, Download, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, WalletCards, CalendarDays, Building2, Download, FileText, Loader2 } from 'lucide-react';
 import api from '../../../lib/axios';
+import { useToast } from '../../../hooks/useToast';
+import { exportFinancialReportExcel } from '../../../utils/excelExport';
 
 import { motion } from 'framer-motion';
 
@@ -14,6 +16,7 @@ const formatRupiah = (value: number) => {
 };
 
 export const ReportsPage = () => {
+  const { success, error } = useToast();
   const [period, setPeriod] = useState('all');
   const [storeId, setStoreId] = useState('all');
   const [stores, setStores] = useState<any[]>([]);
@@ -22,6 +25,7 @@ export const ReportsPage = () => {
   });
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     api.get('/store').then(r => setStores(r.data)).catch(() => {});
@@ -40,34 +44,29 @@ export const ReportsPage = () => {
   const LabaBersih = LabaKotor - (reportData.expenses || 0);
 
   const handleDownload = async () => {
-    const XLSX = await import('xlsx');
-    const wb = XLSX.utils.book_new();
-    
-    // Ringkasan
-    const ringkasanData = [
-      ['RINGKASAN LAPORAN KEUANGAN'],
-      ['Periode', period],
-      [''],
-      ['Total Pendapatan', reportData.revenue],
-      ['Total Pengeluaran (Beban)', reportData.expenses],
-      ['Laba Bersih', LabaBersih]
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ringkasanData), 'Ringkasan');
+    try {
+      setIsExporting(true);
+      const selectedStore = stores.find(s => s.id === storeId);
+      const currentStoreName = storeId === 'all' ? 'Semua Cabang' : (selectedStore?.name || 'Cabang Terpilih');
+      
+      await exportFinancialReportExcel({
+        reportData: {
+          ...reportData,
+          grossProfit: LabaKotor,
+          netProfit: LabaBersih
+        },
+        cashFlowData,
+        period,
+        storeName: currentStoreName,
+      });
 
-    // Detail Transaksi
-    const detailData = [
-      ['DETAIL TRANSAKSI KAS'],
-      ['Tanggal', 'Keterangan', 'Tipe', 'Nominal (Rp)'],
-      ...cashFlowData.map(item => [
-        new Date(item.date).toLocaleDateString('id-ID'),
-        item.description,
-        item.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
-        Number(item.amount)
-      ])
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailData), 'Detail');
-    
-    XLSX.writeFile(wb, `Laporan_Sederhana_${new Date().getTime()}.xlsx`);
+      success("Export Excel Berhasil", "Laporan keuangan profesional telah tersimpan.");
+    } catch (err: any) {
+      console.error("Export error:", err);
+      error("Gagal Export Excel", err.message || "Terjadi kesalahan saat mengekspor laporan.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const containerVariants = {
@@ -90,10 +89,11 @@ export const ReportsPage = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleDownload}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
+          disabled={isExporting}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
         >
-          <Download size={18} />
-          <span>Export Excel</span>
+          {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+          <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
         </motion.button>
       </div>
 

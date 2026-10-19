@@ -3,6 +3,7 @@ import { X, Upload, Loader2, FileSpreadsheet, Download } from 'lucide-react';
 import * as xlsx from 'xlsx';
 import { useToast } from '../../../hooks/useToast';
 import { productApi } from '../api/productApi';
+import { exportProductTemplateExcel } from '../../../utils/excelExport';
 
 interface ImportExcelModalProps {
   isOpen: boolean;
@@ -14,35 +15,23 @@ interface ImportExcelModalProps {
 export const ImportExcelModal = ({ isOpen, onClose, onSuccess, storeId }: ImportExcelModalProps) => {
   const { success, error } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        SKU: 'PRD-001',
-        Barcode: '123456789012',
-        Nama: 'Kopi Susu Aren',
-        HargaBeli: 10000,
-        HargaJual: 15000,
-        Stok: 50,
-      },
-      {
-        SKU: 'PRD-002',
-        Barcode: '',
-        Nama: 'Teh Manis',
-        HargaBeli: 3000,
-        HargaJual: 5000,
-        Stok: 100,
-      }
-    ];
-
-    const ws = xlsx.utils.json_to_sheet(templateData);
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, 'Template Produk');
-    xlsx.writeFile(wb, 'Template_Import_Produk.xlsx');
+  const handleDownloadTemplate = async () => {
+    try {
+      setIsDownloadingTemplate(true);
+      await exportProductTemplateExcel();
+      success('Berhasil', 'Template Excel produk berhasil diunduh.');
+    } catch (err: any) {
+      console.error('Download template error:', err);
+      error('Gagal Mengunduh', err.message || 'Terjadi kesalahan saat mengunduh template.');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
   };
 
   const processFile = async (file: File) => {
@@ -60,23 +49,26 @@ export const ImportExcelModal = ({ isOpen, onClose, onSuccess, storeId }: Import
       }
 
       const productsData = jsonData.map((row: any) => ({
-        sku: String(row.SKU || row.sku || '').trim(),
-        barcode: row.Barcode || row.barcode ? String(row.Barcode || row.barcode).trim() : undefined,
-        name: String(row.Nama || row.name || row.NamaProduk || '').trim(),
-        buyPrice: Number(row.HargaBeli || row.buyPrice || 0),
-        sellPrice: Number(row.HargaJual || row.sellPrice || 0),
-        initialStock: Number(row.Stok || row.initialStock || row.stock || 0),
+        sku: String(row.SKU || row.sku || row['SKU *'] || row['Kode Barang'] || '').trim(),
+        barcode: (row.Barcode || row.barcode || row['Kode Barcode']) 
+          ? String(row.Barcode || row.barcode || row['Kode Barcode']).trim() 
+          : undefined,
+        name: String(row.Nama || row.name || row.NamaProduk || row['Nama Produk'] || row['Nama Produk *'] || '').trim(),
+        buyPrice: Number(row.HargaBeli || row.buyPrice || row['Harga Beli'] || row['Harga Beli (Rp)'] || row['Harga Beli (Rp) *'] || 0),
+        sellPrice: Number(row.HargaJual || row.sellPrice || row['Harga Jual'] || row['Harga Jual (Rp)'] || row['Harga Jual (Rp) *'] || 0),
+        initialStock: Number(row.Stok || row.initialStock || row.stock || row['Stok Awal'] || row['Stok Awal *'] || row['Stok'] || 0),
         storeId,
       }));
 
-      // Validate required fields
-      const invalidRows = productsData.filter(p => !p.sku || !p.name);
-      if (invalidRows.length > 0) {
-        throw new Error(`Ada ${invalidRows.length} baris yang tidak memiliki SKU atau Nama.`);
+      // Filter out empty rows or header description rows
+      const validRows = productsData.filter(p => p.sku && p.name && !p.sku.toLowerCase().includes('petunjuk'));
+
+      if (validRows.length === 0) {
+        throw new Error('Tidak ditemukan baris data produk yang valid. Pastikan kolom SKU dan Nama Produk terisi.');
       }
 
-      await productApi.createBulk(productsData);
-      success('Import Berhasil', `${productsData.length} produk berhasil ditambahkan ke inventaris.`);
+      await productApi.createBulk(validRows);
+      success('Import Berhasil', `${validRows.length} produk berhasil ditambahkan ke inventaris.`);
       onSuccess();
     } catch (err: any) {
       console.error(err);
@@ -138,9 +130,11 @@ export const ImportExcelModal = ({ isOpen, onClose, onSuccess, storeId }: Import
             </div>
             <button 
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/50 dark:bg-black/50 hover:bg-white/80 dark:hover:bg-black/80 border border-white/30 rounded-lg text-sm font-medium transition-colors"
+              disabled={isDownloadingTemplate}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/50 dark:bg-black/50 hover:bg-white/80 dark:hover:bg-black/80 border border-white/30 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Download className="w-4 h-4" /> Template
+              {isDownloadingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>{isDownloadingTemplate ? 'Mengunduh...' : 'Unduh Template'}</span>
             </button>
           </div>
 

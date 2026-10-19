@@ -11,7 +11,8 @@ import {
   Trash2, 
   FileSpreadsheet,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { productApi, type Product } from '../api/productApi';
@@ -21,6 +22,7 @@ import { ConfirmModal } from '../../../components/ui/ConfirmModal';
 import { useAuthStore } from '../../../store/authStore';
 import { useToast } from '../../../hooks/useToast';
 import api from '../../../lib/axios';
+import { exportInventoryExcel } from '../../../utils/excelExport';
 
 interface StoreData {
   id: string;
@@ -32,6 +34,7 @@ export const InventoryPage = () => {
   const { success, error } = useToast();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -102,6 +105,24 @@ export const InventoryPage = () => {
     }
   };
 
+  const handleExportInventory = async () => {
+    if (!products || products.length === 0) {
+      error("Tidak Ada Data", "Tidak ada produk di cabang ini untuk diekspor.");
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const currentStore = stores.find(s => s.id === selectedStoreId);
+      await exportInventoryExcel(products, currentStore?.name || 'Cabang Terpilih');
+      success("Export Berhasil", "Daftar inventaris berhasil diekspor ke Excel profesional.");
+    } catch (err: any) {
+      console.error("Export inventory error:", err);
+      error("Gagal Export", err.message || "Terjadi kesalahan saat mengekspor inventaris.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const filteredProducts = products?.filter((product) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
@@ -148,15 +169,24 @@ export const InventoryPage = () => {
 
           <button 
             onClick={() => refetch()}
-            className="p-2 border border-white/20 bg-white/40 dark:bg-black/40 shadow-sm rounded-xl hover:bg-white/60 transition-all text-muted-foreground hover:text-foreground"
+            className="p-2 border border-white/20 bg-white/40 dark:bg-black/40 shadow-sm rounded-xl hover:bg-white/60 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
             title="Refresh Data"
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button 
+            onClick={handleExportInventory}
+            disabled={!products || products.length === 0 || isExporting}
+            className="bg-blue-500/10 text-blue-600 border border-blue-500/20 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl font-medium shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            title="Export data inventaris ke Excel"
+          >
+            {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            <span>Export Excel</span>
+          </button>
+          <button 
             onClick={() => setIsImportModalOpen(true)}
             disabled={!selectedStoreId}
-            className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded-xl font-medium shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white px-4 py-2 rounded-xl font-medium shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <FileSpreadsheet className="w-5 h-5" /> Import Excel
           </button>
@@ -166,7 +196,7 @@ export const InventoryPage = () => {
               setIsAddModalOpen(true);
             }}
             disabled={!selectedStoreId}
-            className="bg-primary text-white px-4 py-2 rounded-xl font-medium shadow-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="bg-primary text-white px-4 py-2 rounded-xl font-medium shadow-sm hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <PlusCircle className="w-5 h-5" /> Tambah Produk
           </button>
