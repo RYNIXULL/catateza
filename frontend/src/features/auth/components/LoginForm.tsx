@@ -89,6 +89,11 @@ export const LoginForm = () => {
     setValue('password', 'admin123');
   };
 
+  const handleFillCashier = () => {
+    setValue('email', 'cashier@smartpos.com');
+    setValue('password', 'admin123');
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
@@ -174,13 +179,20 @@ export const LoginForm = () => {
         )}
       </button>
 
-      <div className="pt-2 text-center border-t border-border/50">
+      <div className="pt-2 flex flex-col items-center gap-1.5 border-t border-border/50">
         <button
           type="button"
           onClick={handleFillDemo}
           className="text-xs text-primary hover:underline font-medium inline-block cursor-pointer py-1 px-2 rounded hover:bg-primary/5 transition-colors"
         >
           Isi Otomatis Akun Admin (admin@smartpos.com / admin123)
+        </button>
+        <button
+          type="button"
+          onClick={handleFillCashier}
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline font-medium inline-block cursor-pointer py-0.5 px-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        >
+          Isi Otomatis Akun Kasir (cashier@smartpos.com / admin123)
         </button>
       </div>
     </form>
