@@ -97,13 +97,25 @@ async function createWindow() {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    console.error(`[Electron] Failed to load: ${errorCode} - ${errorDescription}`)
+  })
+
+  // Tekan F12 untuk membuka DevTools (Console / Network)
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' && input.type === 'keyDown') {
+      win?.webContents.toggleDevTools()
+    }
+  })
+
   if (isDev) {
     const devUrl = await getDevServerUrl()
     console.log(`[Electron] Connecting to: ${devUrl}`)
     await win.loadURL(devUrl)
-    // win.webContents.openDevTools()
   } else {
-    await win.loadFile(path.join(DIST, 'index.html'))
+    const indexPath = path.join(DIST, 'index.html')
+    console.log(`[Electron] Loading production file: ${indexPath}`)
+    await win.loadFile(indexPath)
   }
 }
 

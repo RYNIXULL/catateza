@@ -33,7 +33,7 @@ api.interceptors.response.use(
       // In a real app, handle refresh token logic here.
       // For now, if 401, we just logout.
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      window.location.hash = '#/login';
     }
     return Promise.reject(error);
   }

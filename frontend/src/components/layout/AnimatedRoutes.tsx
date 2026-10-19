@@ -60,6 +60,7 @@ export const AnimatedRoutes = () => {
         </Route>
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );
