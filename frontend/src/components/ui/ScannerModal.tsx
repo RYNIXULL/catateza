@@ -33,7 +33,8 @@ export const ScannerModal = ({ isOpen, onClose, onScan, continuous = false }: Sc
             fps: 10, 
             qrbox: { width: 250, height: 250 },
             supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-            rememberLastUsedCamera: true
+            rememberLastUsedCamera: true,
+            videoConstraints: { facingMode: { ideal: "environment" } }
           },
           /* verbose= */ false
         );
